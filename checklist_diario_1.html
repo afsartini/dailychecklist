@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Ama — Daily Checklist</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #0d0d0f;
+  --card:   #16161a;
+  --border: #2a2a32;
+  --muted:  #4a4a58;
+  --text:   #e8e8f0;
+  --soft:   #9898b0;
+  --pink:   #f472b6;
+  --pink-d: #be185d;
+  --blue:   #60a5fa;
+  --purple: #a78bfa;
+  --teal:   #34d399;
+  --yellow: #fbbf24;
+  --r: 14px;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { scroll-behavior:smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 100px;
+}
+
+/* ── HEADER ── */
+.app-header {
+  padding: 32px 20px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.app-header::before {
+  content:'';
+  position:absolute; top:-60px; right:-40px;
+  width:200px; height:200px;
+  background: radial-gradient(circle, rgba(244,114,182,.15) 0%, transparent 70%);
+  pointer-events:none;
+}
+.greeting { font-size:13px; color:var(--soft); font-weight:500; letter-spacing:.06em; text-transform:uppercase; margin-bottom:4px; }
+.app-title { font-family:'DM Serif Display',serif; font-size:32px; color:var(--text); line-height:1.1; }
+.app-title span { color:var(--pink); font-style:italic; }
+.date-pill {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--card); border:1px solid var(--border);
+  border-radius:99px; padding:6px 14px;
+  font-size:12px; color:var(--soft); margin-top:12px;
+}
+
+/* ── TABS ── */
+.tabs {
+  display:flex; gap:6px;
+  padding:0 20px 20px;
+  overflow-x:auto; scrollbar-width:none;
+}
+.tabs::-webkit-scrollbar { display:none; }
+.tab-btn {
+  flex-shrink:0;
+  background:var(--card); border:1px solid var(--border);
+  border-radius:99px; padding:8px 18px;
+  font-size:13px; font-weight:600; color:var(--soft);
+  cursor:pointer; transition:all .2s;
+}
+.tab-btn.active {
+  background:var(--pink); border-color:var(--pink);
+  color:white;
+}
+
+/* ── PAGE ── */
+.page { display:none; padding:0 20px; }
+.page.active { display:block; }
+
+/* ── SECTION ── */
+.section { margin-bottom:24px; }
+.section-label {
+  font-size:11px; font-weight:700; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted);
+  margin-bottom:10px; padding-left:2px;
+}
+
+/* ── TASK CARD ── */
+.task {
+  display:flex; align-items:flex-start; gap:14px;
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--r); padding:14px 16px;
+  margin-bottom:8px; cursor:pointer;
+  transition:all .2s; position:relative; overflow:hidden;
+  user-select:none;
+}
+.task::before {
+  content:''; position:absolute; left:0; top:0; bottom:0;
+  width:3px; border-radius:3px 0 0 3px;
+  background:var(--accent, transparent);
+  transition:all .2s;
+}
+.task:active { transform:scale(.98); }
+.task.done { opacity:.5; }
+.task.done .task-text { text-decoration:line-through; color:var(--muted); }
+
+.check {
+  width:22px; height:22px; flex-shrink:0;
+  border-radius:6px; border:2px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  margin-top:1px; transition:all .2s;
+  background:transparent;
+}
+.task.done .check {
+  background:var(--accent, var(--pink));
+  border-color:var(--accent, var(--pink));
+}
+.checkmark {
+  width:10px; height:8px; opacity:0;
+  transition:opacity .15s;
+}
+.task.done .checkmark { opacity:1; }
+
+.task-content { flex:1; }
+.task-text { font-size:14px; font-weight:500; line-height:1.4; color:var(--text); }
+.task-sub { font-size:12px; color:var(--soft); margin-top:3px; line-height:1.4; }
+.task-badge {
+  display:inline-block; padding:2px 8px; border-radius:99px;
+  font-size:10px; font-weight:700; margin-top:6px;
+  background:rgba(255,255,255,.06); color:var(--soft);
+}
+
+/* ── FOCUS PICKER ── */
+.focus-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--r); padding:18px; margin-bottom:24px;
+  position:relative; overflow:hidden;
+}
+.focus-card::after {
+  content:'';
+  position:absolute; bottom:-30px; right:-30px;
+  width:120px; height:120px;
+  background:radial-gradient(circle, rgba(244,114,182,.1) 0%, transparent 70%);
+  pointer-events:none;
+}
+.focus-label { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--pink); margin-bottom:8px; }
+.focus-title { font-family:'DM Serif Display',serif; font-size:20px; color:var(--text); margin-bottom:6px; }
+.focus-sub { font-size:13px; color:var(--soft); line-height:1.5; }
+.focus-input {
+  width:100%; background:rgba(255,255,255,.04); border:1px solid var(--border);
+  border-radius:10px; padding:12px 14px; margin-top:12px;
+  font-family:'DM Sans',sans-serif; font-size:14px; color:var(--text);
+  outline:none; transition:border-color .2s; resize:none;
+}
+.focus-input:focus { border-color:var(--pink); }
+.focus-input::placeholder { color:var(--muted); }
+
+/* ── PROGRESS ── */
+.progress-row {
+  display:flex; align-items:center; gap:10px; margin-bottom:20px;
+}
+.progress-bar-wrap { flex:1; height:6px; background:var(--border); border-radius:99px; overflow:hidden; }
+.progress-bar { height:100%; border-radius:99px; background:linear-gradient(90deg,var(--pink),var(--purple)); transition:width .4s ease; }
+.progress-text { font-size:12px; font-weight:700; color:var(--soft); white-space:nowrap; }
+
+/* ── KPI ROW ── */
+.kpi-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:24px; }
+.kpi-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--r); padding:14px;
+}
+.kpi-icon { font-size:20px; margin-bottom:6px; }
+.kpi-val { font-family:'DM Serif Display',serif; font-size:22px; color:var(--text); }
+.kpi-label { font-size:11px; color:var(--soft); margin-top:2px; }
+.kpi-input {
+  width:100%; background:transparent; border:none; border-bottom:1px solid var(--border);
+  font-family:'DM Serif Display',serif; font-size:22px; color:var(--text);
+  outline:none; padding:0; margin-top:4px;
+  transition:border-color .2s;
+}
+.kpi-input:focus { border-bottom-color:var(--pink); }
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  position:fixed; bottom:0; left:0; right:0;
+  background:rgba(13,13,15,.92); backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  display:flex; padding:10px 20px 20px;
+  gap:4px;
+}
+.nav-item {
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+  cursor:pointer; padding:6px; border-radius:10px; transition:all .2s;
+  color:var(--muted);
+}
+.nav-item.active { color:var(--pink); }
+.nav-icon { font-size:20px; }
+.nav-label { font-size:10px; font-weight:600; }
+
+/* ── RESET BTN ── */
+.reset-btn {
+  background:transparent; border:1px solid var(--border);
+  border-radius:99px; padding:8px 16px;
+  font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600;
+  color:var(--muted); cursor:pointer; transition:all .2s;
+  display:block; margin:0 auto 24px;
+}
+.reset-btn:active { color:var(--text); border-color:var(--soft); }
+
+/* ── SUNDAY BADGE ── */
+.sunday-banner {
+  background:linear-gradient(135deg,rgba(167,139,250,.15),rgba(244,114,182,.1));
+  border:1px solid rgba(167,139,250,.3);
+  border-radius:var(--r); padding:14px 16px; margin-bottom:20px;
+  display:flex; align-items:center; gap:10px;
+}
+.sunday-banner .emoji { font-size:24px; }
+.sunday-banner-text { font-size:13px; color:var(--soft); line-height:1.5; }
+.sunday-banner-text strong { color:var(--purple); display:block; font-size:14px; margin-bottom:2px; }
+
+/* ── ANIMATIONS ── */
+@keyframes checkPop { 0%{transform:scale(1)} 50%{transform:scale(1.15)} 100%{transform:scale(1)} }
+.task.just-done { animation:checkPop .2s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.page.active { animation:fadeIn .2s ease; }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="greeting">Hey, Ama 👋</div>
+  <div class="app-title">Daily<br><span>Checklist</span></div>
+  <div class="date-pill">
+    <span>📅</span>
+    <span id="date-display"></span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('daily', this)">☀️ Today</button>
+  <button class="tab-btn" onclick="switchTab('weekly', this)">📆 Week</button>
+  <button class="tab-btn" onclick="switchTab('kpis', this)">📈 KPIs</button>
+</div>
+
+<!-- ══════════════ DAILY ══════════════ -->
+<div id="tab-daily" class="page active">
+
+  <div class="focus-card">
+    <div class="focus-label">⭐ Focus of the day</div>
+    <div class="focus-title">What's your 1 task?</div>
+    <div class="focus-sub">Pick 1 🔴 task from the plan. Just one. Do it first.</div>
+    <textarea class="focus-input" id="focus-task" rows="2" placeholder="Ex: Document the 5 Sole Agency case studies (3h)"></textarea>
+  </div>
+
+  <div class="progress-row">
+    <div class="progress-bar-wrap"><div class="progress-bar" id="daily-bar" style="width:0%"></div></div>
+    <div class="progress-text" id="daily-count">0 / 7</div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Daily habits</div>
+
+    <div class="task" id="h1" style="--accent:#f472b6" onclick="toggle('h1')">
+      <div class="check"><svg class="checkmark" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="task-content">
+        <div class="task-text">☕ Morning ritual</div>
+        <div class="task-sub">Coffee + 5 min journal + set intention for the day</div>
+        <div class="task-badge">6:00am · 10 min</div>
+      </div>
+    </div>
+
+    <div class="task" id="h2" style="--accent:#a78bfa" onclick="toggle('h2')">
+      <div class="check"><svg class="checkmark" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="task-content">
+        <div class="task-text">📞 Morning call with boyfriend</div>
+        <div class="task-sub">Quick good morning — he's 1h behind (Austin)</div>
+        <div class="task-badge">6:30am · 15-30 min · optional</div>
+      </div>
+    </div>
+
+    <div class="task" id="h3" style="--accent:#60a5fa" onclick="toggle('h3')">
+      <div class="check"><svg class="checkmark" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="task-content">
+        <div class="task-text">📚 Coursera</div>
+        <div class="task-sub">Google Certificate or AI for Everyone</div>
+        <div class="task-badge">45 min</div>
+      </div>
+    </div>
+
+    <div class="task" id="h4" style="--accent:#34d399" onclick="toggle('h4')">
+      <div class="check"><svg class="checkmark" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="task-content">
+        <div class="task-text">📱 Instagram engagement</div>
+        <div class="task-sub">Reply to comments + comment on 5 posts in your niche</div>
+        <div class="task-badge">30 min</div>
+      </div>
+    </div>
+
+    <div class="task" id="h5" style="--accent:#f472b6" onclick="toggle('h5')">
+      <div class="check"><svg class="checkmark" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="task-content">
+        <div class="task-text">🏢 Work on Sole Agency</div>
+        <div class="task-sub">At least 1h — agency, content or Google prep</div>
+        <div class="task-badge">≥ 1h</div>
+      </div>
+    </div>
+
+    <div class="task" id="h6" style="--accent:#fbbf24" onclick="toggle('h6')">
+      <div class="check"><svg class="checkmark" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="task-content">
+        <div class="task-text">📖 Reading</div>
+        <div class="task-sub">Book of the month — 30 min before bed</div>
+        <div class="task-badge">30 min</div>
+      </div>
+    </div>
+
+    <div class="task" id="h7" style="--accent:#a78bfa" onclick="toggle('h7')">
+      <div class="check"><svg class="checkmark" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="task-content">
+        <div class="task-text">📞 Night call with boyfriend 💜</div>
+        <div class="task-sub">9pm FL = 8pm Austin — sacred time!</div>
+        <div class="task-badge">9pm · 1h · DO NOT skip</div>
+      </div>
+    </div>
+
+  </div>
+
+  <button class="reset-btn" onclick="resetDaily()">↺ Reset today</button>
+</div>
+
+<!-- ══════════════ WEEKLY ══════════════ -->
+<div id="tab-weekly" class="page">
+
+  <div id="sunday-banner" class="sunday-banner" style="display:none">
+    <div class="emoji">🌙</div>
+    <div class="sunday-banner-text">
+      <strong>It's Sunday — time for your Weekly Review!</strong>
+      Update your KPIs, check off what you did this week and plan your top 3 tasks for tomorrow.
+    </div>
+  </div>
+
+  <div class="progress-row">
+    <div class="progress-bar-wrap"><div class="progress-bar" id="weekly-bar" style="width:0%;background:linear-gradient(90deg,#60a5fa,#a78bfa)"></div></div>
+    <div class="progress-text" id="weekly-count">0 / 5</div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">✨ Personal Brand</div>
+
+    <div class="task" id="w1" style="--accent:#f472b6" onclick="toggle('w1')">
+      <div class="check"><svg class="checkmark" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="task-content">
+        <div class="task-text">3 posts published on Instagram</div>
+        <div class="task-sub">Mon: books · Wed: life/routine · Fri: tech/agency</div>
+        <div class="task-badge">@amameetsworld · weekly goal</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">🏢 Sole Agency</div>
+
+    <div class="task" id="w2" style="--accent:#60a5fa" onclick="toggle('w2')">
+      <div class="check"><svg class="checkmark" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="task-content">
+        <div class="task-text">5 outreach messages sent</div>
+        <div class="task-sub">New leads — offer value before selling</div>
+        <div class="task-badge">Update CRM after</div>
+      </div>
+    </div>
+
+    <div class="task" id="w3" style="--accent:#60a5fa" onclick="toggle('w3')">
+      <div class="check"><svg class="checkmark" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="task-content">
+        <div class="task-text">Work call with boyfriend</div>
+        <div class="task-sub">Sole Agency: align projects, roles, next week</div>
+        <div class="task-badge">Sat or Sun · 1-2h</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">📚 Learning</div>
+
+    <div class="task" id="w4" style="--accent:#a78bfa" onclick="toggle('w4')">
+      <div class="check"><svg class="checkmark" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="task-content">
+        <div class="task-text">1 Coursera module completed</div>
+        <div class="task-sub">Google Certificate or AI for Everyone</div>
+        <div class="task-badge">goal: 1 module/week</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">🌐 Google Prep</div>
+
+    <div class="task" id="w5" style="--accent:#34d399" onclick="toggle('w5')">
+      <div class="check"><svg class="checkmark" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="task-content">
+        <div class="task-text">5 Googlers connected on LinkedIn</div>
+        <div class="task-sub">Personalized message — "Google Marketing LATAM"</div>
+        <div class="task-badge">goal: 5/week starting April</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">🌙 Weekly Review (Sunday)</div>
+
+    <div class="focus-card" style="margin-bottom:0">
+      <div class="focus-label">📝 Top 3 tasks for next week</div>
+      <div class="focus-sub" style="margin-bottom:10px">One per pillar — pick the most 🔴 urgent from the plan</div>
+      <textarea class="focus-input" id="week-tasks" rows="4" placeholder="1. [Sole Agency] ...&#10;2. [Personal Brand] ...&#10;3. [Google Prep] ..."></textarea>
+    </div>
+  </div>
+
+  <div style="height:20px"></div>
+  <button class="reset-btn" onclick="resetWeekly()">↺ Reset week</button>
+</div>
+
+<!-- ══════════════ KPIs ══════════════ -->
+<div id="tab-kpis" class="page">
+
+  <div class="focus-card" style="margin-bottom:20px">
+    <div class="focus-label">🌙 Update every Sunday</div>
+    <div class="focus-title">Your numbers this week</div>
+    <div class="focus-sub">15 minutes. Without this, the plan is just decoration.</div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">✨ @amameetsworld</div>
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-icon">📸</div>
+        <input class="kpi-input" id="kpi-followers" type="number" placeholder="0" oninput="saveKpi()">
+        <div class="kpi-label">Followers · goal: 1,000</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">❤️</div>
+        <input class="kpi-input" id="kpi-eng" type="text" placeholder="0%" oninput="saveKpi()">
+        <div class="kpi-label">Engagement · goal: &gt;3%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">📅</div>
+        <input class="kpi-input" id="kpi-posts" type="number" placeholder="0" oninput="saveKpi()">
+        <div class="kpi-label">Posts this week · goal: 3</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🔗</div>
+        <input class="kpi-input" id="kpi-linkedin" type="number" placeholder="0" oninput="saveKpi()">
+        <div class="kpi-label">LinkedIn connections · goal: 200</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">🏢 Sole Agency</div>
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-icon">💼</div>
+        <input class="kpi-input" id="kpi-leads" type="number" placeholder="0" oninput="saveKpi()">
+        <div class="kpi-label">Leads in CRM · goal: 20</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🤝</div>
+        <input class="kpi-input" id="kpi-clients" type="number" placeholder="0" oninput="saveKpi()">
+        <div class="kpi-label">Paying clients · goal: 3</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">💰</div>
+        <input class="kpi-input" id="kpi-revenue" type="text" placeholder="$0" oninput="saveKpi()">
+        <div class="kpi-label">Monthly revenue · goal: $1k</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🌐</div>
+        <input class="kpi-input" id="kpi-googlers" type="number" placeholder="0" oninput="saveKpi()">
+        <div class="kpi-label">Googlers connected · goal: 10</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">📚 Learning</div>
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-icon">📚</div>
+        <input class="kpi-input" id="kpi-course" type="text" placeholder="0%" oninput="saveKpi()">
+        <div class="kpi-label">Google Certificate · goal: 100%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">📖</div>
+        <input class="kpi-input" id="kpi-books" type="number" placeholder="0" oninput="saveKpi()">
+        <div class="kpi-label">Books read in 2026 · goal: 1/month</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Date ──────────────────────────────────────────────
+const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const now = new Date();
+document.getElementById('date-display').textContent =
+  `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]}`;
+
+// Sunday banner
+if (now.getDay() === 0) {
+  document.getElementById('sunday-banner').style.display = 'flex';
+}
+
+// ── Storage key helpers ───────────────────────────────
+const todayKey = () => `ama_daily_${now.toDateString()}`;
+const weekKey  = () => {
+  const d = new Date(now);
+  d.setDate(d.getDate() - d.getDay());
+  return `ama_weekly_${d.toDateString()}`;
+};
+
+// ── Toggle task ───────────────────────────────────────
+function toggle(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('done');
+  if (el.classList.contains('done')) {
+    el.classList.add('just-done');
+    setTimeout(() => el.classList.remove('just-done'), 200);
+  }
+  saveState();
+  updateProgress();
+}
+
+// ── Progress ──────────────────────────────────────────
+function updateProgress() {
+  const daily = ['h1','h2','h3','h4','h5','h6','h7'];
+  const done_d = daily.filter(id => document.getElementById(id).classList.contains('done')).length;
+  document.getElementById('daily-bar').style.width = (done_d/daily.length*100) + '%';
+  document.getElementById('daily-count').textContent = `${done_d} / ${daily.length}`;
+
+  const weekly = ['w1','w2','w3','w4','w5'];
+  const done_w = weekly.filter(id => document.getElementById(id).classList.contains('done')).length;
+  document.getElementById('weekly-bar').style.width = (done_w/weekly.length*100) + '%';
+  document.getElementById('weekly-count').textContent = `${done_w} / ${weekly.length}`;
+}
+
+// ── Save / Load ───────────────────────────────────────
+function saveState() {
+  const daily = ['h1','h2','h3','h4','h5','h6','h7'];
+  const weekly = ['w1','w2','w3','w4','w5'];
+  const state = {
+    daily: daily.map(id => document.getElementById(id).classList.contains('done')),
+    weekly: weekly.map(id => document.getElementById(id).classList.contains('done')),
+    focus: document.getElementById('focus-task').value,
+    weekTasks: document.getElementById('week-tasks').value,
+  };
+  try { localStorage.setItem(todayKey(), JSON.stringify(state)); } catch(e){}
+  try { localStorage.setItem(weekKey()+'_week', JSON.stringify({
+    weekly: state.weekly,
+    weekTasks: state.weekTasks
+  })); } catch(e){}
+}
+
+function loadState() {
+  try {
+    const daily = JSON.parse(localStorage.getItem(todayKey()) || 'null');
+    if (daily) {
+      ['h1','h2','h3','h4','h5','h6','h7'].forEach((id,i) => {
+        if (daily.daily[i]) document.getElementById(id).classList.add('done');
+      });
+      if (daily.focus) document.getElementById('focus-task').value = daily.focus;
+    }
+    const week = JSON.parse(localStorage.getItem(weekKey()+'_week') || 'null');
+    if (week) {
+      ['w1','w2','w3','w4','w5'].forEach((id,i) => {
+        if (week.weekly[i]) document.getElementById(id).classList.add('done');
+      });
+      if (week.weekTasks) document.getElementById('week-tasks').value = week.weekTasks;
+    }
+  } catch(e){}
+  loadKpis();
+  updateProgress();
+}
+
+function saveKpi() {
+  const ids = ['kpi-followers','kpi-eng','kpi-posts','kpi-linkedin','kpi-leads','kpi-clients','kpi-revenue','kpi-googlers','kpi-course','kpi-books'];
+  const vals = {};
+  ids.forEach(id => { vals[id] = document.getElementById(id).value; });
+  try { localStorage.setItem('ama_kpis', JSON.stringify(vals)); } catch(e){}
+}
+
+function loadKpis() {
+  try {
+    const vals = JSON.parse(localStorage.getItem('ama_kpis') || 'null');
+    if (vals) Object.entries(vals).forEach(([id,v]) => {
+      const el = document.getElementById(id);
+      if (el) el.value = v;
+    });
+  } catch(e){}
+}
+
+function resetDaily() {
+  ['h1','h2','h3','h4','h5','h6','h7'].forEach(id => document.getElementById(id).classList.remove('done'));
+  document.getElementById('focus-task').value = '';
+  saveState(); updateProgress();
+}
+
+function resetWeekly() {
+  ['w1','w2','w3','w4','w5'].forEach(id => document.getElementById(id).classList.remove('done'));
+  document.getElementById('week-tasks').value = '';
+  saveState(); updateProgress();
+}
+
+// ── Tabs ─────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// Auto-save text inputs
+['focus-task','week-tasks'].forEach(id => {
+  document.getElementById(id).addEventListener('input', saveState);
+});
+
+// ── Init ──────────────────────────────────────────────
+loadState();
+</script>
+</body>
+</html>
